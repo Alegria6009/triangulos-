@@ -1,27 +1,115 @@
-import os
-import time
-import itertools
+cat > index.html <<'EOF'
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Triângulo de Estrelas Animado</title>
+  <style>
+    :root { color-scheme: dark; }
+    body {
+      margin: 0; min-height: 100vh;
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      background: #0b1020; color: #e5e7eb; font-family: Consolas, "Fira Mono", monospace;
+      gap: 16px; padding: 24px;
+    }
+    h1 { margin: 0; font-weight: 700; font-size: 20px; color: #c7d2fe; }
+    pre {
+      margin: 0; line-height: 1.1; font-size: clamp(10px, 2vw, 18px);
+      white-space: pre; user-select: none;
+      text-shadow: 0 0 6px rgba(255,255,255,0.15);
+    }
+    .controls {
+      display: flex; gap: 12px; flex-wrap: wrap; align-items: center; justify-content: center;
+      background: rgba(255,255,255,0.05); padding: 10px 12px; border-radius: 10px;
+      border: 1px solid rgba(255,255,255,0.08);
+    }
+    .controls label { font-size: 14px; display: flex; gap: 6px; align-items: center; }
+    input[type="range"] { width: 160px; }
+    button {
+      background: #6366f1; color: white; border: 0; padding: 8px 12px; border-radius: 8px; cursor: pointer;
+    }
+    button:hover { filter: brightness(1.05); }
+  </style>
+</head>
+<body>
+  <h1>Triângulo de Estrelas Animado ✨</h1>
+  <pre id="triangulo"></pre>
+  <div class="controls">
+    <label>Altura máx:
+      <input id="altura" type="range" min="3" max="30" value="12">
+      <span id="alturaVal">12</span>
+    </label>
+    <label>FPS:
+      <input id="fps" type="range" min="1" max="60" value="12">
+      <span id="fpsVal">12</span>
+    </label>
+    <label>Caractere:
+      <input id="char" type="text" value="*" maxlength="2" size="2">
+    </label>
+    <button id="toggle">Pausar</button>
+  </div>
 
-def limpar_tela():
-    os.system('cls' if os.name == 'nt' else 'clear')
+  <script>
+    const pre = document.getElementById('triangulo');
+    const alturaInput = document.getElementById('altura');
+    const alturaVal = document.getElementById('alturaVal');
+    const fpsInput = document.getElementById('fps');
+    const fpsVal = document.getElementById('fpsVal');
+    const charInput = document.getElementById('char');
+    const toggleBtn = document.getElementById('toggle');
 
-def desenhar_triangulo(altura, char='*'):
-    for i in range(1, altura + 1):
-        espacos = altura - i
-        estrelas = 2 * i - 1
-        print(' ' * espacos + char * estrelas)
+    let maxAltura = parseInt(alturaInput.value, 10);
+    let fps = parseInt(fpsInput.value, 10);
+    let ch = charInput.value || '*';
+    let paused = false;
 
-def animar(max_altura=12, fps=12):
-    sequencia = list(range(1, max_altura + 1)) + list(range(max_altura - 1, 0, -1))
-    try:
-        for h in itertools.cycle(sequencia):
-            limpar_tela()
-            desenhar_triangulo(h, char='*')  # troque por '✦' ou '+' se quiser variar
-            print("\nCtrl+C para parar")
-            time.sleep(1 / fps)
-    except KeyboardInterrupt:
-        limpar_tela()
-        print("Encerrado. 👍")
+    function frame(h, char) {
+      const lines = [];
+      for (let i = 1; i <= h; i++) {
+        lines.push(' '.repeat(h - i) + char.repeat(2 * i - 1));
+      }
+      return lines.join('\\n');
+    }
 
-if __name__ == "__main__":
-    animar(max_altura=12, fps=10)
+    let seq = [], idx = 0, timer = null;
+    function buildSeq() {
+      seq = [];
+      for (let i = 1; i <= maxAltura; i++) seq.push(i);
+      for (let i = maxAltura - 1; i >= 1; i--) seq.push(i);
+      idx = 0;
+    }
+    function tick() {
+      pre.textContent = frame(seq[idx], ch);
+      idx = (idx + 1) % seq.length;
+    }
+    function start() {
+      if (timer) clearInterval(timer);
+      timer = setInterval(() => { if (!paused) tick(); }, 1000 / fps);
+    }
+
+    // Init
+    buildSeq(); start(); tick();
+
+    // UI events
+    alturaInput.addEventListener('input', e => {
+      maxAltura = parseInt(e.target.value, 10);
+      alturaVal.textContent = maxAltura;
+      buildSeq();
+    });
+    fpsInput.addEventListener('input', e => {
+      fps = parseInt(e.target.value, 10);
+      fpsVal.textContent = fps;
+      start();
+    });
+    charInput.addEventListener('input', e => {
+      ch = (e.target.value || '*').slice(0, 2);
+    });
+    toggleBtn.addEventListener('click', e => {
+      paused = !paused;
+      e.target.textContent = paused ? 'Retomar' : 'Pausar';
+    });
+  </script>
+</body>
+</html>
+EOF
